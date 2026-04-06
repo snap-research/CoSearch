@@ -1,0 +1,412 @@
+# Format checks enforced on CI:
+# 1. Comments must appear above each field.
+# 2. There must be a blank line between each field.
+# 3. Inline comments (after a field on the same line) are not allowed.
+# 4. Indentation level is respected for nested fields.
+
+# specify the default per-component configs
+defaults:
+
+  # <folder_name>@<field_name>.<field_name>: <yaml_file_name>
+  # actor_rollout_ref.actor: trainer/config/actor/dp_actor.yaml
+  - actor@actor_rollout_ref.actor: dp_actor
+  - actor@reranker_actor_rollout_ref.actor: reranker_dp_actor
+
+  # data: trainer/config/data/legacy_data.yaml
+  - data@data: legacy_data
+
+  # Reference model config.
+  # Reference model will be enabled when actor.use_kl_loss or/and algorithm.use_kl_in_reward is/are True.
+  - ref@actor_rollout_ref.ref: dp_ref
+  - ref@reranker_actor_rollout_ref.ref: reranker_dp_ref
+
+  # Rollout model config.
+  - rollout@actor_rollout_ref.rollout: rollout
+  - rollout@reranker_actor_rollout_ref.rollout: reranker_rollout
+
+  # Model config.
+  - model@actor_rollout_ref.model: hf_model
+  - model@reranker_actor_rollout_ref.model: reranker_hf_model
+
+  # Critic model config.
+  - critic@critic: dp_critic
+
+  # Reward model config.
+  - reward_model@reward_model: dp_reward_model
+
+  # Rollout correction config.
+  - algorithm@algorithm.rollout_correction: rollout_correction
+
+  # load the reference default config, then apply the fields in the current yaml
+  # self config override anything above
+  - _self_
+
+# config for actor, rollout and reference model
+actor_rollout_ref:
+
+  # Whether it's a hybrid engine, currently only supports hybrid engine
+  hybrid_engine: true
+
+  # Timeout for operations executed against the process group
+  nccl_timeout: 600
+
+  # Rollout model config.
+  rollout:
+
+    # for huge model, layered summon can save memory (prevent OOM) but make it slower
+    layered_summon: False
+
+# config for reranker actor, rollout and reference model
+reranker_actor_rollout_ref:
+
+  # Whether it's a hybrid engine, currently only supports hybrid engine
+  hybrid_engine: true
+
+  # Timeout for operations executed against the process group
+  nccl_timeout: 600
+
+  # Whether reranker is trainable (if False, reranker is inference-only)
+  trainable: false
+
+# custom reward function definition
+custom_reward_function:
+
+  # The path to the file containing your customized reward function.
+  # If not specified, pre-implemented reward functions will be used.
+  path: null
+
+  # The name of the reward function within the specified file. Default is 'compute_score'.
+  name: compute_score
+
+  # Additional kwargs to pass to the reward function
+  reward_kwargs: {}
+
+# Reranker UID grouping configuration
+reranker_uid_group_function:
+
+  # Path to the Python file containing UID grouping functions
+  # If null, will use default function (group_by_muid_ans_in_doc)
+  path: null
+
+  # Function name to use for UID grouping
+  # Options: group_by_muid_ans_in_doc, group_by_muid_ans_in_doc_subq_em, group_by_muid_ans_in_doc_subq_rougeL1
+  name: group_by_muid_ans_in_doc
+
+  # Additional kwargs to pass to the UID grouping function
+  uid_group_kwargs: {}
+
+# Reranker score assignment configuration
+reranker_score_assign_function:
+
+  # Path to the Python file containing score assignment functions
+  # If null, will use default function (max_tool_agent_score)
+  path: null
+
+  # Function name to use for score assignment
+  # Options: max_tool_agent_score, sum_tool_agent_score_with_cond_threshold
+  name: max_tool_agent_score
+
+  # Additional kwargs to pass to the score assignment function
+  score_assign_kwargs: {}
+
+# Reward judge model (LLM-as-Judge) configuration
+# Used for evaluating reranker outputs via LLM-based judging
+# Runs as standalone inference-only vLLM server on dedicated GPU(s)
+reward_judge_model:
+
+  # Whether to enable the reward judge model
+  enable: false
+
+  # Model path (HuggingFace model ID or local path)
+  model:
+    path: null
+    external_lib: null
+    trust_remote_code: true
+    use_shm: false
+
+  # Rollout (vLLM server) configuration for the judge
+  rollout:
+    name: vllm
+    tensor_model_parallel_size: 4
+    gpu_memory_utilization: 0.85
+    max_model_len: 24576
+    prompt_length: 20480
+    response_length: 4096
+    free_cache_engine: false
+
+  # LLM-as-Judge sampling configuration
+  n_judge_samples: 4           # Number of parallel judge calls per entry (averaged for robustness)
+  max_judge_prompt_length: 20480  # Max prompt tokens for judge input
+  judge_sampling_params:         # vLLM sampling params for judge generation
+    temperature: 0.7
+    max_tokens: 8192
+    top_p: 0.95
+
+  # GPU allocation for standalone mode
+  n_gpus_per_node: 16
+  nnodes: 1
+
+  mode: http_server  # "http_server" for external server mode, "ray_server" for Ray-managed server mode, "none" to disable
+  server_urls: null  # List of server URLs for HTTP mode  
+  
+# config for the algorithm
+algorithm:
+
+  # Required when using verl.utils.omega_conf_to_dataclass to instantiate dataclass configs
+  _target_: verl.trainer.config.AlgoConfig
+
+  # Discount factor for future rewards
+  gamma: 1.0
+
+  # Trade-off between bias and variance in the GAE estimator
+  lam: 1.0
+
+  # Advantage estimator type: "gae", "grpo", "reinforce_plus_plus", etc.
+  adv_estimator: gae
+
+  # Whether to normalize advantages by std (specific to GRPO)
+  norm_adv_by_std_in_grpo: True
+
+  # Whether to enable in-reward KL penalty
+  use_kl_in_reward: False
+
+  # How to estimate KL divergence: "kl", "abs", "mse", "low_var_kl", or "full"
+  kl_penalty: kl
+
+  # KL control configuration
+  kl_ctrl:
+
+    # Required when using verl.utils.omega_conf_to_dataclass to instantiate dataclass configs
+    _target_: verl.trainer.config.KLControlConfig
+
+    # KL control type: "fixed" or "adaptive"
+    type: fixed
+
+    # Initial coefficient for KL penalty
+    kl_coef: 0.001
+
+    # Horizon value for adaptive controller (if enabled)
+    horizon: 10000
+
+    # Target KL divergence (used for adaptive controller)
+    target_kl: 0.1
+
+  # Whether to enable preference feedback PPO
+  use_pf_ppo: False
+
+  # Preference feedback PPO settings
+  pf_ppo:
+
+    # Method for reweighting samples: "pow", "max_min", or "max_random"
+    reweight_method: pow
+
+    # Power used for weight scaling in "pow" method
+    weight_pow: 2.0
+
+# config for the trainer
+trainer:
+
+  # Whether to balance batch sizes across distributed workers
+  balance_batch: True
+
+  # Number of epochs in training
+  total_epochs: 30
+
+  # Total training steps (can be set explicitly or derived from epochs)
+  total_training_steps: null
+
+  # Project name for experiment tracking (e.g., wandb)
+  project_name: verl_examples
+
+  # Experiment name for run identification in tracking tools
+  experiment_name: gsm8k
+
+  # Logging backends to use: "console", "wandb", etc.
+  logger: ["console", "wandb"]
+
+  # Number of generations to log during validation
+  log_val_generations: 0
+
+  # Directory for logging rollout data; no dump if null
+  rollout_data_dir: null
+
+  # Directory for logging validation data; no dump if null
+  validation_data_dir: null
+
+  # Number of nodes used in the training
+  nnodes: 1
+
+  # Number of GPUs per node
+  n_gpus_per_node: 8
+
+  # Save frequency (by iteration) for model checkpoints
+  save_freq: -1
+
+  # ESI refers to the elastic server instance used during training, similar to the training plan. For example,
+  # if you purchase 10 hours of computing power, the ESI will automatically shut down after 10 hours of training.
+  # To ensure a checkpoint is saved before ESI shuts down, the system will start saving a checkpoint in advance.
+  # The advance time is calculated as: Advance Time = Longest historical step duration + Checkpoint save duration + esi_redundant_time.
+  # Here, esi_redundant_time is a user-defined value that further extends the advance time for added safety.
+  esi_redundant_time: 0
+
+  # Resume mode: "auto", "disable", or "resume_path"
+  # "auto": resume from last checkpoint if available
+  # "disable": start from scratch
+  # "resume_path": resume from a user-defined path
+  resume_mode: auto
+
+  # Path to resume training from (only used when resume_mode is "resume_path")
+  resume_from_path: null
+
+  # Whether to run validation before training begins
+  val_before_train: True
+
+  # Whether to run validation only
+  val_only: False
+
+  # Validation frequency (in training iterations)
+  test_freq: -1
+
+  # Number of iterations to warm up the critic before updating policy
+  critic_warmup: 0
+
+  # Default path to distributed filesystem for saving checkpoints
+  default_hdfs_dir: null
+
+  # Whether to delete local checkpoints after loading
+  del_local_ckpt_after_load: False
+
+  # Default local directory for saving checkpoints
+  default_local_dir: checkpoints/${trainer.project_name}/${trainer.experiment_name}
+
+  # Maximum number of actor checkpoints to keep
+  max_actor_ckpt_to_keep: null
+
+  # Maximum number of critic checkpoints to keep
+  max_critic_ckpt_to_keep: null
+
+  # Timeout (in seconds) for Ray worker to wait for registration
+  ray_wait_register_center_timeout: 300
+
+  # Device to run training on (e.g., "cuda", "cpu")
+  device: cuda
+
+  # whether to use legacy worker implementation
+  #  mode: "auto", "enable", or "disable"
+  use_legacy_worker_impl: auto
+
+  reranker_main_train_n_ratio: 2
+
+  reranker_sampling_val_start_step: 1000
+
+  reranker_filter_no_answer_in_docs: false  # Set to true to filter out reranker outputs where answer_in_docs=False
+
+
+
+# profiler configs
+global_profiler:
+
+  # Required when using verl.utils.omega_conf_to_dataclass to instantiate dataclass configs
+  _target_: verl.utils.profiler.ProfilerConfig
+
+  # Profiling tool: choose between nsys, npu, torch, torch_memory
+  tool: null
+
+  # profile steps
+  steps: null
+
+  # Whether to combine continuous steps into one database.
+  ## If True, worker.profiler.discrete must be False, [1,2] in one, [5] in another.
+  ## If False, [1] in one, [2] in another, [5] in another.
+  profile_continuous_steps: False
+
+  # Path to save profiling contents
+  save_path: "outputs/profile"
+
+  # Specific tool configs, can use +profiler.tool_config.[tool].xxx to config
+  global_tool_config:
+
+    # nsys config
+    nsys:
+
+      # Required when using verl.utils.omega_conf_to_dataclass to instantiate dataclass configs
+      _target_: verl.utils.profiler.config.NsightToolConfig
+
+      # True for each task has its own database, False for all tasks in one training step share one database.
+      discrete: False
+
+      # controller Nvidia Nsight Systems Options. Must set when profile_steps is not None.
+      ## reference https://docs.nvidia.com/nsight-systems/UserGuide/index.html
+      ## reference https://docs.ray.io/en/latest/ray-observability/user-guides/profiling.html
+      controller_nsight_options:
+
+        # Select the API(s) to be traced.
+        trace: "cuda,nvtx,cublas,ucx"
+
+        # Track the GPU memory usage by CUDA kernels. Must be string type "true" or "false".
+        cuda-memory-usage: "true"
+
+        # CUDA graphs will be traced as a whole
+        cuda-graph-trace: "graph"
+
+      # worker Nvidia Nsight Systems Options. Must set when profile_steps is not None.
+      worker_nsight_options:
+
+        # Select the API(s) to be traced.
+        trace: "cuda,nvtx,cublas,ucx"
+
+        # Track the GPU memory usage by CUDA kernels. Must be string type "true" or "false".
+        cuda-memory-usage: "true"
+
+        # CUDA graphs will be traced as a whole
+        cuda-graph-trace: "graph"
+
+        # Profiling only in a range of torch.cuda.profiler.start and stop. Do not change this config.
+        capture-range: "cudaProfilerApi"
+
+        # Specify the desired behavior when a capture range ends.
+        # In verl we need the torch.cuda.profiler.start/stop pair to repeats n times.
+        # valid values are "repeat-shutdown:n" or null.
+        # For normal whole step profiling, n = len(profile_steps);
+        # but for discrete profiling, n = len(profile_steps) * Number(subtasks).
+        # Or you can just leave it null and the program will use n = len(profile_steps) * 6;
+        capture-range-end: null
+
+        # Send signal to the target application's process group. We let the program to exit by itself.
+        kill: none
+
+    # enable memory visualization for debugging memory usage
+    torch_memory:
+
+      #  Maximum number of allocation entries to record
+      trace_alloc_max_entries: 100_000
+
+      # The depth of the call stack to capture for each allocation
+      stack_depth: 32
+
+      # 'alloc': records only allocation events || 'state': records memory state changes || 'all': records both.
+      context: "all"
+
+      # 'python': records Python stacks || 'cpp': records C++ stacks (available in some versions) || 'all': records both.
+      stacks: "all"
+
+      # devices, record_context etc.
+      kw_args: {}
+
+# configs for TransferQueue
+transfer_queue:
+
+  # Whether to enable transfer queue
+  enable: False
+
+# configs related to ray
+ray_kwargs:
+
+  # configs related to ray initialization
+  ray_init:
+
+    # Number of CPUs for Ray. Use a fixed number instead of null when using SLURM.
+    num_cpus: null
+
+  # Path to save Ray timeline JSON for performance profiling
+  timeline_json_file: null

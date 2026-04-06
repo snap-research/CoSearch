@@ -1,0 +1,11 @@
+# Dual Agent Loop Configuration
+# This file registers the agent loops for main agent and reranker agent
+
+# Main Agent: Can call reranker as a tool during multi-turn conversations
+- name: main_agent_with_reranker
+  _target_: dual_agent_loop.MainAgentLoop
+  max_turns: 5  # Maximum number of conversation turns
+
+# Gen Reranker Agent: Can perform reranking and search r1 logic
+- name: gen_reranker_agent
+  _target_: dual_agent_loop.GenRerankerAgentLoop

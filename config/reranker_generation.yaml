@@ -1,0 +1,50 @@
+# Reranker Generation Config
+# For generating and evaluating reranker outputs on test data
+
+# Load default configs from subfolders (same as ppo_trainer.yaml)
+defaults:
+  - rollout@actor_rollout_ref.rollout: rollout
+  - model@actor_rollout_ref.model: hf_model
+  - _self_
+
+trainer:
+  nnodes: 1
+  n_gpus_per_node: 4
+  device: cuda
+
+data:
+  # Input: parquet file(s) with prompts and ground truth
+  train_files: /path/to/eval_data.parquet  # Can be list or single file
+  prompt_key: prompt  # Column with chat messages
+  data_source_key: data_source  # Column with dataset name (msmarco_dev, trec19, etc.)
+  reward_model_key: reward_model  # Column with ground truth
+  
+  # Output: parquet with responses added
+  output_path: /path/to/output_with_responses.parquet
+
+# Model and rollout config
+actor_rollout_ref:
+  model:
+    # Your checkpoint path
+    path: /gypsum/work1/zamani/hzeng/search-embeded-llm/msmarco/rl_sft_train/10K/sft/rerank/thinking/N200_M10_R16_T1.0_P1.0_K-1/checkpoints/reranker_sft_Qwen2.5-7B-Instruct_bs2x32_lr2e-5_ep2/final
+    
+  rollout:
+    # Override key parameters (others inherit from rollout/rollout.yaml)
+    name: vllm
+    tensor_model_parallel_size: 1  # 1 for 7B, 2-4 for 70B
+    
+    # Sampling
+    n: 1  # Number of responses per prompt
+    temperature: 0.0  # Greedy decoding
+    top_p: 1.0
+    response_length: 2048
+    
+    # vLLM settings
+    dtype: bfloat16
+    gpu_memory_utilization: 0.8
+    enforce_eager: false
+    load_format: auto  # Load actual weights (not dummy)
+    max_model_len: 4096
+
+# Custom option for evaluation
+evaluate_after_generation: true

@@ -1,0 +1,34 @@
+# Search R1 Tools Configuration
+# This file defines the tool instances used by SearchR1AgentLoop
+
+tools:
+  - class_name: verl.tools.search_r1_tool.SearchR1Tool
+    config:
+      type: native  # Native Python tool (not MCP)
+      
+      # Dense Retrieval Configuration
+      retrieval_service_url: "http://10.128.0.71:8000/retrieve"  # TODO: Update with actual retrieval service URL
+      timeout: 30  # HTTP request timeout in seconds
+      
+      # Retry Configuration (to handle API overload)
+      max_retries: 3  # Number of retry attempts if API fails
+      retry_delay: 1.0  # Initial retry delay in seconds
+      retry_backoff: 2.0  # Exponential backoff multiplier (1s -> 2s -> 4s)
+      
+      # Retrieval parameters
+      default_top_n: 50  # Number of documents to retrieve from dense retrieval
+      default_top_m: 5   # Number of documents to return after reranking
+      
+      # Reranker Configuration
+      use_reranker: false  # Whether to use reranker (set to false for retrieval-only mode)
+      reranker_sampling_params:
+        temperature: 0.0  # Deterministic reranking during training
+        top_p: 1.0
+      
+      # Optional: Query caching configuration
+      # enable_cache: true
+      # cache_max_size: 10000
+      # cache_ttl: 3600  # Time-to-live in seconds
+    
+    # Tool schema is auto-generated in SearchR1Tool.__init__
+    # The tool will be registered with name "search"

@@ -1,0 +1,24 @@
+tools:
+  - class_name: verl.tools.retrieval_reranker_tool.RetrievalWithRerankerTool
+    config:
+      # Dense retrieval API endpoint
+      retrieval_service_url: http://127.0.0.1:8000/retrieve
+      
+      # Timeout for API calls (seconds)
+      timeout: 30
+      
+      # Default number of documents to retrieve from dense retrieval
+      default_top_n: 200
+      
+      # Default number of documents to return after reranking
+      default_top_m: 5
+      
+      # Tool type (native Python tool)
+      type: native
+    
+    # Tool schema is auto-generated in the class, but you can override it here if needed
+    # tool_schema:
+    #   type: function
+    #   function:
+    #     name: search_with_rerank
+    #     description: Custom description...

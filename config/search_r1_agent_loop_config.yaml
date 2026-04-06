@@ -1,0 +1,22 @@
+# Search R1 Agent Loop Configuration
+# This file defines the agent loop types that can be instantiated during training
+
+# Each agent loop configuration should specify:
+# - name: The agent_name that will be referenced in the dataset
+# - _target_: The fully qualified class name for Hydra instantiation
+# - Additional parameters specific to this agent loop type
+
+- name: search_r1_agent
+  _target_: verl.experimental.agent_loop.search_r1_agent_loop.SearchR1AgentLoop
+
+  track_messages: false 
+  
+  # Optional: Custom parameters for SearchR1AgentLoop
+  # These will be passed as **kwargs to __init__
+  # Currently SearchR1AgentLoop doesn't define additional parameters,
+  # but you can add them if needed in the future
+  
+  # Example future extensions:
+  # max_reasoning_tokens: 1024
+  # answer_format: "xml"  # <answer>...</answer> format
+  # enable_step_rewards: true

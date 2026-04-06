@@ -1,0 +1,129 @@
+# Evaluation Config for Reranker Models
+# Simplified version of grop_reranker_trainer.yaml for evaluation only
+
+defaults:
+  - actor@actor_rollout_ref.actor: dp_actor
+  - rollout@actor_rollout_ref.rollout: rollout
+  - model@actor_rollout_ref.model: hf_model
+  - _self_
+
+# Output directory for evaluation results
+output_dir: ./eval_results
+
+# Model and rollout config
+actor_rollout_ref:
+  hybrid_engine: true
+  nccl_timeout: 600
+  
+  model:
+    # Checkpoint path (override via command line)
+    path: /path/to/checkpoint
+    use_shm: false
+  
+  rollout:
+    # Rollout mode: "vllm" for sync, "async" for async
+    mode: async
+    name: vllm
+    
+    # Model parallel settings
+    tensor_model_parallel_size: 1  # 1 for 7B, 2-4 for 70B
+    
+    # Async agent settings (only used if mode=async)
+    agent:
+      num_workers: 4
+    
+    # Generation settings
+    val_kwargs:
+      n: 1  # Number of samples per prompt
+      do_sample: false  # Use greedy decoding for evaluation
+      temperature: 0.0
+      top_p: 1.0
+    
+    response_length: 2048
+    dtype: bfloat16
+    gpu_memory_utilization: 0.8
+    enforce_eager: false
+    load_format: auto
+    max_model_len: 4096
+
+# Data config
+data:
+  # Validation/test files (override via command line)
+  val_files: /path/to/eval.parquet
+  
+  # Column names in parquet
+  prompt_key: prompt
+  data_source_key: data_source
+  reward_model_key: reward_model
+  
+  # Dataset processing
+  max_prompt_length: 2048
+  truncation: error
+  return_raw_chat: true
+  filter_overlong_prompts: true
+  apply_chat_template_kwargs: {}
+  
+  # Sampling
+  val_max_samples: -1  # -1 for all samples
+  val_batch_size: 8
+  dataloader_num_workers: 4
+  
+  trust_remote_code: false
+
+# Custom reward function
+custom_reward_function:
+  # Path to reward function file
+  path: null
+  
+  # Function name (e.g., compute_mrr_penalty_score, compute_ndcg_penalty_score)
+  name: null
+  
+  # Reward function kwargs
+  reward_kwargs:
+    format_penalty: -0.2
+    metric: mrr  # or "ndcg"
+
+# Trainer config (minimal for evaluation)
+trainer:
+  project_name: reranker_eval
+  experiment_name: eval_run
+  
+  # Number of examples to print during evaluation
+  num_examine: 5
+  
+  # Device
+  device: cuda
+  nnodes: 1
+  n_gpus_per_node: 1
+  
+  # Evaluation only
+  val_only: true
+  total_epochs: 0
+  total_training_steps: 0
+
+# Resource pool configuration
+resource_pool_spec:
+  default:
+    # Format: [[node1_gpus, node2_gpus, ...]]
+    # For single node with 1 GPU: [[1]]
+    # For single node with 4 GPUs: [[4]]
+    - [1]
+
+resource_pool_mapping:
+  actor_rollout: default
+
+# Ray config
+ray_kwargs:
+  ray_init:
+    num_cpus: null  # Auto-detect
+  timeline_json_file: null
+
+# Profiler (disabled for evaluation)
+global_profiler:
+  _target_: verl.utils.profiler.ProfilerConfig
+  tool: null
+  steps: null
+
+# Transfer queue (disabled)
+transfer_queue:
+  enable: false

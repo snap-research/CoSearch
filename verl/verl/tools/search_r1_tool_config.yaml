@@ -1,0 +1,29 @@
+tools:
+  - class_name: verl.tools.search_r1_tool.SearchR1Tool
+    config:
+      # Dense retrieval API endpoint
+      retrieval_service_url: http://127.0.0.1:8000/retrieve
+      
+      # Timeout for API calls (seconds)
+      timeout: 30
+      
+      # Number of documents to retrieve from dense retrieval
+      default_top_n: 50
+      
+      # Number of documents to return (after reranking or directly)
+      default_top_m: 5
+      
+      # Whether to use reranker (if false, returns top-M from retrieval directly)
+      use_reranker: false
+      
+      # Reranker sampling parameters
+      reranker_sampling_params:
+        temperature: 0.0
+        max_tokens: 8192
+        top_p: 1.0
+      
+      # Tool type (native Python tool)
+      type: native
+    
+    # Tool schema is auto-generated in the class with name "search"
+    # This matches the SEARCH_R1_PROMPT requirement

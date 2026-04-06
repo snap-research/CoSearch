@@ -1,0 +1,7 @@
+tools:
+  - class_name: verl.tools.dense_retrieval_tool.DenseRetrievalTool
+    config:
+      retrieval_service_url: http://127.0.0.1:8000/retrieve
+      timeout: 30
+      default_top_n: 200
+      type: native
