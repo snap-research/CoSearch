@@ -118,3 +118,10 @@ format_penalty: -0.2     # penalty for malformed reranker output
 
 ---
 
+## Authorship
+
+This repository contains sample code developed as part of a collaboration between Snap Inc. and the University of Massachusetts Amherst. Rights to the sample code remain with the original author(s) and are licensed under the terms described in the LICENSE file.
+
+## License
+
+This project is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/). See the [LICENSE](LICENSE) file for details.
