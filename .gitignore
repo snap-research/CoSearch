@@ -1,9 +1,11 @@
 # Project-specific
 /checkpoints/
 /data/
+/org_data/
 /outputs/
 /private/
 /sbatch_out/
+/scripts/upload_to_hf.py
 
 # Python
 __pycache__/

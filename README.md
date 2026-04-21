@@ -85,7 +85,27 @@ The server will log its hostname to `sbatch_out/retriever_<jobid>.out`. Note the
 
 ---
 
-## Step 4: Launch CoSearch Training
+## Step 4: Download CoSearch Training and EvaluaDon ata
+
+Before launching training, download the train/eval parquet files to the local `data/` path expected by the training pipeline:
+
+```bash
+python scripts/download_from_hf.py
+```
+
+By default, this pulls from:
+- `hzeng/co-search-train`
+- `hzeng/co-search-eval`
+
+If needed, override the dataset repos:
+
+```bash
+python scripts/download_from_hf.py --train-repo <train_repo> --eval-repo <eval_repo>
+```
+
+---
+
+## Step 5: Launch CoSearch Training
 
 Pass the retriever URL as an environment variable at submission time:
 
@@ -114,6 +134,24 @@ default_top_m: 5         # documents returned to the main agent after reranking
 tool_score_metric: "hit" # reranker reward metric (Average Hit@k)
 hit_cutoffs: [1, 3, 5]   # k values for Hit@k
 format_penalty: -0.2     # penalty for malformed reranker output
+```
+
+---
+
+## Citation
+
+If you use CoSearch in your research, please cite:
+
+- https://arxiv.org/abs/2604.17555
+
+```bibtex
+@article{zeng2026cosearch,
+	title={CoSearch: Joint Training of Reasoning and Document Ranking via Reinforcement Learning for Agentic Search},
+	author={Hansi Zeng, Liam Collins, Bhuvesh Kumar, Neil Shah, Hamed Zamani},
+	journal={arXiv preprint arXiv:2604.17555},
+	year={2026},
+	doi={10.48550/arXiv.2604.17555}
+}
 ```
 
 ---
