@@ -119,25 +119,6 @@ The script generates the tool config at runtime with this URL injected — no ma
 
 ---
 
-## Configuration
-
-| File | Purpose |
-|------|---------|
-| `config/co_search_trainer.yaml` | Hydra root config (loaded by `main_co_search_ppo.py`) |
-| `config/co_search_agent_loop_config.yaml` | Agent loop class binding (`co_search_agent` registry key) |
-
-The tool config is **not a static file** — `train_co_search_grpo.sh` generates it at runtime with `RETRIEVAL_SERVICE_URL` injected. Key parameters (edit the heredoc in the script to change them):
-
-```yaml
-default_top_n: 50        # documents fetched from retriever
-default_top_m: 5         # documents returned to the main agent after reranking
-tool_score_metric: "hit" # reranker reward metric (Average Hit@k)
-hit_cutoffs: [1, 3, 5]   # k values for Hit@k
-format_penalty: -0.2     # penalty for malformed reranker output
-```
-
----
-
 ## Citation
 
 If you use CoSearch in your research, please cite:
