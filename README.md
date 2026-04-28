@@ -85,7 +85,7 @@ The server will log its hostname to `sbatch_out/retriever_<jobid>.out`. Note the
 
 ---
 
-## Step 4: Download CoSearch Training and EvaluaDon ata
+## Step 4: Download CoSearch Training and Evaluation Data
 
 Before launching training, download the train/eval parquet files to the local `data/` path expected by the training pipeline:
 
